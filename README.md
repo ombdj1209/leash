@@ -18,6 +18,26 @@ Uses MCP-style JSON-RPC 2.0 message shapes (`tools/list`, `tools/call`) over pla
 | Stack | Python 3.11+ (standard-library `tomllib`, `sqlite3`, `hashlib`), FastAPI for the HTTP front door, NumPy for percentiles. |
 | Reproduce | `python run_eval.py` regenerates every number in this README and exits non-zero if the gate fails. |
 
+## Tech stack
+
+| Layer | Technology | Used for |
+|---|---|---|
+| Language | Python 3.11+ | Everything; dataclasses for the gateway, its injectable clock and suite cases |
+| Protocol | JSON-RPC 2.0, MCP-style `tools/list` and `tools/call` | Message shapes between agents and the gateway |
+| Web API | FastAPI | `POST /mcp` and `POST /approve/{token}` in `leash/server.py` |
+| ASGI server | Uvicorn | Running the gateway locally (`make serve`) |
+| Policy config | TOML via Python `tomllib` | `policies/default.toml` (per-agent policy) and `policies/gate.toml` (CI thresholds) |
+| SQL sandbox | SQLite via Python `sqlite3` | Upstream `sql.query` tool with an engine-level read-only authorizer (`set_authorizer`) |
+| Text normalisation | Python `unicodedata` (NFKC), `re` | Normalising text before PII detection; IBAN mod-97, Luhn and BSN 11-proof checks |
+| URL and path handling | Python `urllib.parse`, `posixpath` | Decoding encoded paths, blocking traversal, checking outbound hosts |
+| Tamper evidence | Python `hashlib` (SHA-256) | Hash-chained audit log in `leash/audit.py` |
+| Fuzzing | Python `random`, `base64` | Mutation fuzzer that rewrites known attacks (`leash/fuzz.py`) |
+| Numerics | NumPy | Overhead percentiles in the evaluation |
+| HTTP client | httpx | FastAPI `TestClient` in the HTTP tests |
+| Testing | pytest | 26 tests, including a regression test for each fuzzer finding |
+| Packaging | setuptools, `pyproject.toml`, Make | Editable install with a `dev` extra; `make test`, `make eval`, `make serve` |
+| CI and supply chain | GitHub Actions, Dependabot | Tests plus the evaluation gate on Python 3.11, 3.12 and 3.13; weekly dependency and action updates |
+
 ## Why this exists
 
 At Data + AI Summit 2026, Databricks framed the governance problem as control over what agents *do*, not just what data they can access: Unity AI Gateway as a runtime layer that enforces policy and cost over models and agents, and Omnigent as a harness for running and governing autonomous agents. Leash is a small, open, measurable version of that runtime layer, built to answer: **what does it take to stop a prompt-injected agent without getting in the way of a normal one, and what does it cost per call?**
