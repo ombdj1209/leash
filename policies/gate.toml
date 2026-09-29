@@ -1,0 +1,4 @@
+# CI gate: the build fails if the evaluation suite falls below these.
+min_adversarial_block_rate = 0.99
+max_benign_false_block_rate = 0.01
+max_p99_overhead_ms = 2.0

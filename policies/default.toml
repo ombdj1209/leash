@@ -1,0 +1,40 @@
+# Leash policy. One table per agent; anything not listed is denied.
+
+[egress]
+# Tools that send data outside the trust boundary. PII in their arguments is blocked or redacted.
+external_tools = ["email.send", "http.post"]
+pii_action = "block"                 # "block" | "redact"
+internal_email_domains = ["corp.example"]
+allowed_http_hosts = ["hooks.corp.example", "status.corp.example"]
+
+[pricing]                            # euro per call, or per 1k tokens for llm.complete
+"sql.query" = 0.002
+"docs.search" = 0.001
+"files.read" = 0.0005
+"email.send" = 0.001
+"http.post" = 0.001
+"llm.complete" = 0.004
+
+[agents.analyst]
+allowed_tools = ["sql.query", "docs.search", "files.read", "email.send", "llm.complete"]
+daily_budget_eur = 2.00
+rate_per_min = 60
+require_approval = ["email.send:external"]   # external recipients need a human
+
+[agents.analyst.args."sql.query"]
+max_len = 4000
+read_only = true                     # enforced inside the database engine, not by regex alone
+
+[agents.analyst.args."files.read"]
+path_prefix = "/data/public/"
+
+[agents.support_bot]
+allowed_tools = ["docs.search", "email.send", "llm.complete"]
+daily_budget_eur = 0.50
+rate_per_min = 30
+require_approval = ["email.send:external"]
+
+[agents.ops_bot]
+allowed_tools = ["http.post", "docs.search"]
+daily_budget_eur = 1.00
+rate_per_min = 120
